@@ -391,13 +391,9 @@ local function SummonPet(fav)
 	C_Timer.After(3, function()
 		if InCombatLockdown() then return end
 		local active = C_PetJournal.GetSummonedPetGUID()
-		if not active and not UnitOnTaxi("player") then		
-			if fav then
-				C_PetJournal.SummonRandomPet(false)
-			else
-				C_PetJournal.SummonRandomPet(true)
-			end
-		end		
+		if not active and not UnitOnTaxi("player") then
+			C_PetJournal.SummonRandomPet(true)
+		end
 	end)
 end
 

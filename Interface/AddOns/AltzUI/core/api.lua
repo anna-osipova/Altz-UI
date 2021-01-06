@@ -272,7 +272,8 @@ T.CheckRole = function()
 	else
 		role = "dpser"
 	end
-	return role
+	-- return role TODO: undo this change
+	return "healer"
 end
 
 T.GetIconLink = function(spellID)
