@@ -131,13 +131,11 @@ T.Overridehealthbar = function(self, event, unit)
 
 	if disconnected then
 		health:SetValue(max)
-	elseif aCoreCDB["UnitframeOptions"]["style"] ~= 3 then
-		health:SetValue(max - min)
 	else
-		health:SetValue(min)
+		health:SetValue(max - min)
 	end
 
-	local r, g, b
+	local r, g, b, r1, b1, g1
 	local perc
 
 	if max ~= 0 then perc = min/max else perc = 1 end
@@ -168,30 +166,29 @@ T.Overridehealthbar = function(self, event, unit)
 		r, g, b = 1, 0, 0
 	elseif (unit == "pet") then
 		local _, playerclass = UnitClass("player")
-		if aCoreCDB["UnitframeOptions"]["style"] == 3 then
-			r, g, b = unpack(oUF.colors.class[playerclass])
-		else
-			r, g, b = oUF:RGBColorGradient(perc, 1, unpack(oUF.colors.smooth))
-		end
+		r, g, b = oUF:RGBColorGradient(perc, 1, unpack(oUF.colors.smooth))
+		r1, g1, b1 = unpack(oUF.colors.class[playerclass])
 	elseif(UnitIsPlayer(unit)) then
-		local _, unitclass = UnitClass(unit)
-		if aCoreCDB["UnitframeOptions"]["style"] == 3 then
-			if unitclass then r, g, b = unpack(oUF.colors.class[unitclass]) else r, g, b = 1, 1, 1 end
-		else
-			r, g, b = oUF:RGBColorGradient(perc, 1, unpack(oUF.colors.smooth))
-		end
+		local _, unitclass = UnitClass(unit)			
+		r, g, b = oUF:RGBColorGradient(perc, 1, unpack(oUF.colors.smooth))
+		if unitclass then r1, g1, b1 = unpack(oUF.colors.class[unitclass]) else r1, g1, b1 =  1, 1, 1 end
 	elseif unit then
-		if aCoreCDB["UnitframeOptions"]["style"] == 3 then
-			r, g, b = unpack(oUF.colors.reaction[UnitReaction(unit, "player") or 5])
-		else
-			r, g, b = oUF:RGBColorGradient(perc, 1, unpack(oUF.colors.smooth))
-		end
+		r, g, b = oUF:RGBColorGradient(perc, 1, unpack(oUF.colors.smooth))
+		r1, g1, b1 = unpack(oUF.colors.reaction[UnitReaction(unit, "player") or 5])
 	end
 
 	if aCoreCDB["UnitframeOptions"]["style"] == 1 then
 		health:GetStatusBarTexture():SetGradient("VERTICAL", r, g, b, r/3, g/3, b/3)
-	else
+	elseif aCoreCDB["UnitframeOptions"]["style"] == 2 then
 		health:SetStatusBarColor(r, g, b)
+	else
+		health:SetStatusBarColor(0, 0, 0)
+	end
+	
+	if aCoreCDB["UnitframeOptions"]["style"] == 3 then
+		self.bg.tex:SetVertexColor(r1, g1, b1)
+	else
+		self.bg.tex:SetVertexColor(0, 0, 0)
 	end
 end
 
@@ -341,14 +338,16 @@ T.Updatehealthbar = function(self, unit, min, max)
 		elseif aCoreCDB["UnitframeOptions"]["style"] == 2 then
 			self:SetStatusBarColor(r2, g2, b2)
 		else
-			self:SetStatusBarColor(r, g, b)
+			self:SetStatusBarColor(0, 0, 0)
 		end
 		
-		if  aCoreCDB["UnitframeOptions"]["style"] ~= 3 then
-			self:SetValue(max - min)	
+		if aCoreCDB["UnitframeOptions"]["style"] == 3 then
+			self.__owner.bg.tex:SetVertexColor(r, g, b)
 		else
-			self:SetValue(min)
+			self.__owner.bg.tex:SetVertexColor(0, 0, 0)
 		end
+		
+		self:SetValue(max - min)	
 	end	
 end
 
@@ -1030,8 +1029,7 @@ local PostCreateIcon = function(auras, icon)
 
 	icon.count:ClearAllPoints()
 	icon.count:SetPoint("BOTTOMRIGHT", 0, -3)
-	icon.count:SetFontObject(nil)
-	icon.count:SetFont(G.numFont, ((aCoreCDB["UnitframeOptions"]["width"]+3)/aCoreCDB["UnitframeOptions"]["auraperrow"]-3)*.4, "OUTLINE")
+	icon.count:SetFontObject(nil)	
 	icon.count:SetTextColor(.9, .9, .1)
 
 	icon.overlay:SetTexture(G.media.blank)
@@ -1040,8 +1038,15 @@ local PostCreateIcon = function(auras, icon)
 	icon.overlay:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 1, -1)
 
 	icon.bd = T.createBackdrop(icon, icon, 0)
-
-	icon.remaining = T.createnumber(icon, "OVERLAY", ((aCoreCDB["UnitframeOptions"]["width"]+3)/aCoreCDB["UnitframeOptions"]["auraperrow"]-3)*.4, "OUTLINE", "CENTER")
+	
+	if auras.plate_element then
+		icon.count:SetFont(G.numFont, aCoreCDB["PlateOptions"]["numfontsize"], "OUTLINE")
+		icon.remaining = T.createnumber(icon, "OVERLAY", aCoreCDB["PlateOptions"]["numfontsize"], "OUTLINE", "CENTER")
+	else
+		icon.count:SetFont(G.numFont, ((aCoreCDB["UnitframeOptions"]["width"]+3)/aCoreCDB["UnitframeOptions"]["auraperrow"]-3)*.4, "OUTLINE")
+		icon.remaining = T.createnumber(icon, "OVERLAY", ((aCoreCDB["UnitframeOptions"]["width"]+3)/aCoreCDB["UnitframeOptions"]["auraperrow"]-3)*.4, "OUTLINE", "CENTER")
+	end
+	
 	icon.remaining:SetPoint("TOPLEFT", 0, 5)
 
 	if aCoreCDB["UnitframeOptions"]["auraborders"] then
@@ -1199,7 +1204,7 @@ local HealerInd_AuraFilter = function(icons, unit, icon, ...)
 end
 
 local NamePlate_AuraFilter = function(icons, unit, icon, ...)
-	local SpellID = select(11, ...)
+	local SpellID = select(10, ...)
 	if icon.isPlayer then
 		if aCoreCDB["PlateOptions"]["myfiltertype"] == "none" then
 			return false
@@ -1317,6 +1322,8 @@ T.CreateAuras = function(self, unit)
 			Auras.size = aCoreCDB["PlateOptions"]["plateaurasize"]
 			Auras.SetPosition = OverrideAurasSetPosition
 			Auras.CustomFilter = NamePlate_AuraFilter
+			Auras.disableMouse = true
+			Auras.plate_element = true
 			
 			self:HookScript("OnEvent", function(self, event)
 				if event == "UNIT_AURA" then
@@ -1472,7 +1479,7 @@ local func = function(self, unit)
 	self.bg.tex:SetAllPoints(self)
 	self.bg.tex:SetVertexColor(0, 0, 0)
 	self.bg.tex:SetTexture(G.media.ufbar)
-
+	
 	-- shadow border for health bar --
 	self.backdrop = T.createBackdrop(self, self, 0) -- this also use for dispel border
 
@@ -1480,6 +1487,7 @@ local func = function(self, unit)
 	local hp = T.createStatusbar(self, "ARTWORK", nil, nil, 1, 1, 1, 1)
 	hp:SetFrameLevel(2)
 	hp:SetAllPoints(self)
+	hp:SetReverseFill(true)
 	hp.frequentUpdates = true
 
 	-- health text --
@@ -1491,8 +1499,9 @@ local func = function(self, unit)
 	hp.ind = hp:CreateTexture(nil, "OVERLAY", 1)
 	hp.ind:SetTexture("Interface\\Buttons\\WHITE8x8")
 	hp.ind:SetVertexColor(0, 0, 0)
-	hp.ind:SetSize(1, self:GetHeight())
-
+	hp.ind:SetSize(1, aCoreCDB["UnitframeOptions"]["height"])
+	hp.ind:SetPoint("RIGHT", hp:GetStatusBarTexture(), "LEFT", 0, 0)
+	
 	self.Health = hp
 	self.Health.PostUpdate = T.Updatehealthbar
 	tinsert(self.mouseovers, self.Health)
@@ -1500,18 +1509,11 @@ local func = function(self, unit)
 	-- portrait 肖像
 	if aCoreCDB["UnitframeOptions"]["portrait"] and multicheck(u, "player", "target", "focus", "boss", "arena") then
 		local Portrait = CreateFrame('PlayerModel', nil, self)
-		Portrait:SetPoint("TOPLEFT", 1, 0)
+		Portrait:SetFrameLevel(1)
+		Portrait:SetPoint("TOPLEFT", 0, 0)
 		Portrait:SetPoint("BOTTOMRIGHT", -1, 0)
 		Portrait:SetAlpha(aCoreCDB["UnitframeOptions"]["portraitalpha"])
 		self.Portrait = Portrait
-		self.Portrait.ApplySettings = function()
-			if aCoreCDB["UnitframeOptions"]["style"] ~= 3 then
-				self.Portrait:SetFrameLevel(1) -- blow hp
-			else
-				self.Portrait:SetFrameLevel(2) -- above hp
-			end
-		end
-		self.Portrait.ApplySettings()
 	end
 
 	-- power bar --
@@ -1638,25 +1640,16 @@ local func = function(self, unit)
 			hp:SetStatusBarTexture(G.media.blank)
 			hp.bg:SetTexture(G.media.blank)
 			hp.bg:SetGradientAlpha("VERTICAL", .5, .5, .5, .5, 0, 0, 0,0)
-			hp.ind:ClearAllPoints()
-			hp.ind:SetPoint("RIGHT", hp:GetStatusBarTexture(), "LEFT", 0, 0)
-			hp:SetReverseFill(true)
 		elseif aCoreCDB["UnitframeOptions"]["style"] == 2 then
 			self.bg.tex:SetAlpha(1)
 			hp:SetStatusBarTexture(G.media.ufbar)
 			hp.bg:SetTexture(G.media.ufbar)
-			hp.bg:SetGradientAlpha("VERTICAL", .2,.2,.2,.15,.25,.25,.25,.6)
-			hp.ind:ClearAllPoints()
-			hp.ind:SetPoint("RIGHT", hp:GetStatusBarTexture(), "LEFT", 0, 0)
-			hp:SetReverseFill(true)
+			hp.bg:SetGradientAlpha("VERTICAL", .2,.2,.2,.15,.25,.25,.25,.6)			
 		else
 			self.bg.tex:SetAlpha(1)
 			hp:SetStatusBarTexture(G.media.ufbar)
 			hp.bg:SetTexture(G.media.ufbar)
-			hp.bg:SetGradientAlpha("VERTICAL", .2,.2,.2,.15,.25,.25,.25,.6)
-			hp.ind:ClearAllPoints()
-			hp.ind:SetPoint("LEFT", hp:GetStatusBarTexture(), "RIGHT", 0, 0)
-			hp:SetReverseFill(false)
+			hp.bg:SetAlpha(0)
 		end
 		-- height, width and scale --
 		if multicheck(u, "targettarget", "focustarget", "pet") then
