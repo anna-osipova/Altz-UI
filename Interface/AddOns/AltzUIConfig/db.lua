@@ -358,6 +358,8 @@ local AuraList = {
 		[GetSpellInfo(328276)] = { id = 328276,  level = 6,}, -- 悔悟之行，尾王没用debuff
 		[GetSpellInfo(334228)] = { id = 334228,  level = 6,}, -- 不稳定的喷发，3号无需监控
 		[GetSpellInfo(329725)] = { id = 329725,  level = 6,}, -- 根除，3号无需监控
+		[GetSpellInfo(206151)] = { id = 206151,  level = 6,}, -- Challenger's burden
+		[GetSpellInfo(57724)] = { id = 57724,  level = 6,}, -- BL debuff
 	},
 }
 
